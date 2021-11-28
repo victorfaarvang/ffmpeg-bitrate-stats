@@ -46,7 +46,7 @@ class BitrateStats:
     def __init__(
         self,
         input_file,
-        stream_type="video",
+        stream_type="auto",
         aggregation="time",
         chunk_size=1,
         dry_run=False,
@@ -54,8 +54,19 @@ class BitrateStats:
     ):
         self.input_file = input_file
 
-        if stream_type not in ["audio", "video"]:
-            print_stderr("Stream type must be audio/video")
+        if stream_type == "auto":
+            video_extensions=["3g2","3gp","aaf","asf","avchd","avi","drc","flv","m2v","m3u8","m4p","m4v","mkv","mng","mov","mp2","mp4","mpe","mpeg","mpg","mpv","mxf","nsv","ogg","ogv","qt","rm","rmvb","roq","svi","vob","webm","wmv","yuv"]
+            audio_extensions=["wav","bwf","raw","aiff","flac","m4a","pac","tta","wv","ast","aac","mp2","mp3","mp4","amr","s3m","3gp","act","au","dct","dss","gsm","m4p","mmf","mpc","ogg","oga","opus","ra","sln","vox"]
+            if input_file.split('.')[-1] in video_extensions:
+                stream_type = "video"
+            elif input_file.split('.')[-1] in audio_extensions:
+                stream_type = "audio"
+        
+        elif stream_type not in ["audio", "video"]:
+            if stream_type == "auto":
+                print_stderr("Stream type could not be automatically determined, please specify the stream type")
+            else:
+                print_stderr("Stream type must be audio/video")
             sys.exit(1)
         self.stream_type = stream_type
 
@@ -302,6 +313,8 @@ class BitrateStats:
             self._print_csv()
         elif output_format == "json":
             self._print_json()
+        elif output_format == "neat":
+            self._print_neat()
 
     def _print_csv(self):
         df = pd.DataFrame(self.bitrate_stats)
@@ -314,6 +327,11 @@ class BitrateStats:
 
     def _print_json(self):
         print(json.dumps(self.bitrate_stats, indent=4))
+    
+    def _print_neat(self):
+        for key in self.bitrate_stats.keys():
+            if key != "bitrate_per_chunk":
+                print(key + ": " + str(self.bitrate_stats[key]))
 
 
 def main():
@@ -337,8 +355,8 @@ def main():
     parser.add_argument(
         "-s",
         "--stream-type",
-        default="video",
-        choices=["video", "audio"],
+        default="auto",
+        choices=["video", "audio", "auto"],
         help="Stream type to analyze",
     )
 
@@ -363,7 +381,7 @@ def main():
         "--output-format",
         type=str,
         default="json",
-        choices=["json", "csv"],
+        choices=["json", "csv", "neat"],
         help="output in which format",
     )
 
